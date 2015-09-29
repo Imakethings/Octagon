@@ -1,0 +1,78 @@
+The structure behind octagon.
+
+Octagon consists of 3 core tables and their children.
+
+The first table is the 'client'.
+It contains everything about the client and a little more.
+The client is known to the system in two different ways:
+
+    * UID
+    * Email
+
+You can find a user through both of these variables. The most common one used by
+the system will be the UID. Which is assigned to every client upon creation of
+the account. The only reason the 'Email' is in that list is to authenticate to
+the server from the clientside.
+
+This is how the average client block looks like, simple key -> value assignment.
+Nothing special here.
+
+    client:1 password 123abc456def
+    client:1 email client@name.com
+    client:1 name MyCoolClientName
+    client:1 salt p?,5j(tyoI{e=n1.^FltSXZMDUF?WuDisWp?Ej>%F#Ml<h=k*l{%WmR=Z<R_W>Bp
+
+For future methods and ways of sorthing we also store all the UID's in a set.
+
+    clients [1, {CLIENT.UID}]
+
+And we count how many clients we currently have. (WHY NOT FUCKING GET THE LENGHT
+OF THE SET?) Sanity reasons.
+
+    client:count 482
+
+This one is very key to what is all about. What client owns which tickets.
+Just a simple set of UID's that are bound to this user.
+
+    client:1:ticket [1, {TICKET.UID}]
+
+Here's how to backtrack the email to the client block. The clients UID is now the
+value instead of the key. We can't expect the user to know and login with their
+UID. They want something they're familiar with: Email.
+
+    client:{CLIENT.EMAIL} {CLIENT.UID}
+    client:client@name.com 1
+
+I'll be using {} to make a reference. In this case you can replace 'CLIENT.UID'
+with 1 or 2 or 72 or 2958. It helps illustrating the logic behind it all.
+
+The second table would be 'ticket'
+
+Every client has the ability to make, delete or update their ticket. 
+
+    ticket:1 title Foobar
+    ticket:1 description reallylongstringwhichexplainstheproblem
+    ticket:1 priority Low
+    ticket:1 created 08/09/2015, 03:36:51
+    ticket:1 updated 08/09/2015, 06:12:19
+    ticket:1 status Assigned
+    ticket:1 client {CLIENT.UID}
+    ticket:1 worker Mirko
+
+This block is a lot bigger compared to the client block. There's a few reference
+calls here that link back to the client and the worker (we'll handle this
+later). To trace the ticket back to the client we have set 'client 1'.
+
+    ticket:1 client {CLIENT.UID}
+
+This will bounce back to the client. Who will tell us more about himself there.
+Everything else will stay stored in the ticket.
+
+As done with the client, we also make a list of all tickets.
+
+    tickets [1, {TICKET.UID}]
+
+We also count the amount of tickets.
+
+    ticket:count 342
+

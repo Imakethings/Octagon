@@ -1,0 +1,12 @@
+{
+  "name": "Octagon",
+  "version": "0.0.3",
+  "private": true,
+  "main": "./module.js",
+  "dependencies": {
+    "body-parser": "^1.13.3",
+    "express": "~4.13.1",
+    "ioredis": "^1.7.5",
+    "q": "*"
+  }
+}
