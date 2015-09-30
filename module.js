@@ -40,7 +40,7 @@
               return defer.reject(new Error("We fucked up badly. Contact us. Really"));
             }
             password = Crypto.createHash('sha256').update(password + client.salt).digest('hex');
-            client.uid = uid;
+            client.id = uid;
             if (password === client.password) {
               return defer.resolve(client);
             } else {
@@ -97,12 +97,12 @@
               return redis.srem("clients", uid).then(function(result) {
                 return redis.decr("client:count").then(function(result) {
                   return defer.resolve(1);
-                })["catch"](function(error) {
-                  return defer.reject(error);
                 });
               })["catch"](function(error) {
                 return defer.reject(error);
               });
+            })["catch"](function(error) {
+              return defer.reject(error);
             })["catch"](function(error) {
               return defer.reject(error);
             });
@@ -188,10 +188,7 @@
         });
         return defer.promise;
       }
-    }
-  };
-
-  ({
+    },
     ticket: {
       create: function(ticket, uid) {
         "use strict";
@@ -320,18 +317,40 @@
     comment: {
       from: function(tid) {
         "use strict";
-        var defer;
+        var defer, result, validate;
+        result = [];
         defer = Q.defer();
+        validate = function(m) {
+          var counter;
+          counter = (counter || 0) + 1;
+          if (counter === Object.keys(m).length) {
+            return defer.resolve(result);
+          }
+        };
         redis.exists("ticket:" + tid).then(function(exists) {
           if (exists === 0) {
             return defer.reject(new Error("Ticket does not exist"));
           }
           return redis.smembers("ticket:" + tid + ":comments").then(function(members) {
-            return defer.resolve(members);
+            var i, len, member, results;
+            results = [];
+            for (i = 0, len = members.length; i < len; i++) {
+              member = members[i];
+              results.push(redis.hgetall("ticket:" + tid + ":comment:" + member).then(function(comment) {
+                result.push(comment);
+                return validate(members);
+              })["catch"](function(error) {
+                console.log(error);
+                return defer.reject(error);
+              }));
+            }
+            return results;
           })["catch"](function(error) {
+            console.log(error);
             return defer.reject(error);
           });
         })["catch"](function(error) {
+          console.log(error);
           return defer.reject(error);
         });
         return defer.promise;
@@ -347,6 +366,7 @@
           comment.created = (new Date().toLocaleDateString()) + " " + (new Date().toLocaleTimeString());
           return redis.smembers("ticket:" + tid + ":comments").then(function(members) {
             return redis.sadd("ticket:" + tid + ":comments", members.length).then(function(result) {
+              comment.id = members.length;
               return redis.hmset("ticket:" + tid + ":comment:" + members.length, comment).then(function(result) {
                 return defer.resolve(comment);
               })["catch"](function(error) {
@@ -386,7 +406,7 @@
         return defer.promise;
       }
     }
-  });
+  };
 
   module.exports = db;
 

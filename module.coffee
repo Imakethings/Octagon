@@ -59,7 +59,7 @@ db =
                     # Salt the supplied password.
                     password = Crypto.createHash('sha256').update(password + client.salt).digest('hex')
 
-                    client.uid = uid
+                    client.id = uid
 
                     # Validate the supplied (hashed) password with the saved hash.
                     if password is client.password
@@ -134,7 +134,7 @@ db =
                             redis.decr "client:count"
                             .then (result) ->
                                 defer.resolve 1
-                            .catch (error) -> return defer.reject error
+                           .catch (error) -> return defer.reject error
                         .catch (error) -> return defer.reject error
                     .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
@@ -232,201 +232,219 @@ db =
     # }}}
 
 # Ticket {{{
-ticket:
-    # Create {{{
-    create: (ticket, uid) ->
-        "use strict"
+    ticket:
+       # Create {{{
+        create: (ticket, uid) ->
+            "use strict"
 
-        defer = Q.defer()
+            defer = Q.defer()
 
-        redis.get "ticket:count"
-        .then (tid) ->
-            if tid is null or tid < 0
-                tid = 0
-                redis.set "ticket:count", tid
+            redis.get "ticket:count"
+            .then (tid) ->
+                if tid is null or tid < 0
+                    tid = 0
+                    redis.set "ticket:count", tid
 
-            ticket.created = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
-            ticket.updated = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
-            ticket.status = "Open"
-            ticket.assigned = ""
-            ticket.client = uid
+                ticket.created = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
+                ticket.updated = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
+                ticket.status = "Open"
+                ticket.assigned = ""
+                ticket.client = uid
 
-            redis.sadd "client:#{uid}:ticket", tid
-            .then (result) ->
-                redis.hmset "ticket:#{tid}", ticket
+                redis.sadd "client:#{uid}:ticket", tid
                 .then (result) ->
-                    redis.sadd "tickets", tid
+                    redis.hmset "ticket:#{tid}", ticket
                     .then (result) ->
-                        redis.incr "ticket:count"
+                        redis.sadd "tickets", tid
                         .then (result) ->
-                            defer.resolve ticket
+                            redis.incr "ticket:count"
+                            .then (result) ->
+                                defer.resolve ticket
+                            .catch (error) -> return defer.reject error
                         .catch (error) -> return defer.reject error
                     .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
             .catch (error) -> return defer.reject error
-        .catch (error) -> return defer.reject error
 
-        defer.promise
-    # }}}
+            defer.promise
+        # }}}
 
-    # Remove {{{
-    remove: (tid) ->
-        "use strict"
+        # Remove {{{
+        remove: (tid) ->
+            "use strict"
 
-        defer = Q.defer()
+            defer = Q.defer()
 
-        redis.hgetall "ticket:#{tid}"
-        .then (ticket) ->
-            # Make sure that the client actually exists.
-            if Object.keys(ticket).length is 0 or ticket is null
-                return defer.reject new Error "You can't delete what doesn't exist."
+            redis.hgetall "ticket:#{tid}"
+            .then (ticket) ->
+                # Make sure that the client actually exists.
+                if Object.keys(ticket).length is 0 or ticket is null
+                    return defer.reject new Error "You can't delete what doesn't exist."
 
-            redis.srem "client:#{ticket.client}:ticket", tid
-            .then (result) ->
-                redis.srem "tickets", tid
+                redis.srem "client:#{ticket.client}:ticket", tid
                 .then (result) ->
-                    redis.del "ticket:#{tid}"
+                    redis.srem "tickets", tid
                     .then (result) ->
-                        redis.decr "ticket:count"
+                        redis.del "ticket:#{tid}"
                         .then (result) ->
-                            defer.resolve 1
+                            redis.decr "ticket:count"
+                            .then (result) ->
+                                defer.resolve 1
+                            .catch (error) -> return defer.reject error
                         .catch (error) -> return defer.reject error
                     .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
             .catch (error) -> return defer.reject error
-        .catch (error) -> return defer.reject error
 
-        defer.promise
-    # }}}
+            defer.promise
+        # }}}
 
-    # Update {{{
-    update: (tid, attributes) ->
-        "use strict"
+        # Update {{{
+        update: (tid, attributes) ->
+            "use strict"
 
-        result = {}
-        defer = Q.defer()
+            result = {}
+            defer = Q.defer()
 
-        # The functions that 'validate's wheter we went through all the attributes.
-        validate = ->
-            counter = (counter or 0) + 1
-            if counter is Object.keys(attributes).length
-                defer.resolve result
+            # The functions that 'validate's wheter we went through all the attributes.
+            validate = ->
+                counter = (counter or 0) + 1
+                if counter is Object.keys(attributes).length
+                    defer.resolve result
 
-        # Retrieve the hash that contains the userdata.
-        redis.hgetall "ticket:#{tid}"
-        .then (ticket) ->
-            # If the client doesn't exist.
-            if ticket is null
-                return defer.reject new Error "Ticket does not exist"
+            # Retrieve the hash that contains the userdata.
+            redis.hgetall "ticket:#{tid}"
+            .then (ticket) ->
+                # If the client doesn't exist.
+                if ticket is null
+                    return defer.reject new Error "Ticket does not exist"
 
-            result = ticket
+                result = ticket
 
-            # For every attribute in attributes.
-            for attribute of attributes
-                # Update or add to the client hash (db).
-                redis.hset("ticket:#{tid}", attribute, attributes[attribute])
-                # Update or add to the client hash (local).
-                result[attribute] = attributes[attribute]
+                # For every attribute in attributes.
+                for attribute of attributes
+                    # Update or add to the client hash (db).
+                    redis.hset("ticket:#{tid}", attribute, attributes[attribute])
+                    # Update or add to the client hash (local).
+                    result[attribute] = attributes[attribute]
 
-                validate()
+                    validate()
 
-        .catch (error) -> return defer.reject error
-
-        defer.promise
-    # }}}
-
-    # Get {{{
-    get: (tid, attribute) ->
-        "use strict"
-
-        defer = Q.defer()
-
-        redis.hgetall "ticket:#{tid}"
-        .then (keys) ->
-            keys.id = tid
-            if attribute?
-                defer.resolve keys[attribute]
-            else
-                defer.resolve keys
-        .catch (error) -> return defer.reject error
-
-        defer.promise
-    # }}}
-
-    # All {{{
-    all: ->
-        "use strict"
-
-        defer = Q.defer()
-
-        redis.smembers "tickets"
-        .then (list) ->
-            defer.resolve list
-        .catch (error) -> return defer.reject error
-
-        defer.promise
-    # }}}
-comment:
-    from: (tid) ->
-        "use strict"
-
-        defer = Q.defer()
-
-        redis.exists "ticket:#{tid}"
-        .then (exists) ->
-            if exists is 0
-                return defer.reject new Error "Ticket does not exist"
-            redis.smembers "ticket:#{tid}:comments"
-            .then (members) ->
-                defer.resolve members
             .catch (error) -> return defer.reject error
-        .catch (error) -> return defer.reject error
 
-        defer.promise
+            defer.promise
+        # }}}
 
-    create: (tid, comment) ->
-        "use strict"
+        # Get {{{
+        get: (tid, attribute) ->
+            "use strict"
 
-        defer = Q.defer()
+            defer = Q.defer()
 
-        redis.exists "ticket:#{tid}"
-        .then (exists) ->
-            if exists is 0
-                return defer.reject new Error "Ticket does not exist"
-            comment.created = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
-            redis.smembers "ticket:#{tid}:comments"
-            .then (members) ->
-                redis.sadd "ticket:#{tid}:comments", members.length
-                .then (result) ->
-                    redis.hmset "ticket:#{tid}:comment:#{members.length}", comment
+            redis.hgetall "ticket:#{tid}"
+            .then (keys) ->
+                keys.id = tid
+                if attribute?
+                    defer.resolve keys[attribute]
+                else
+                    defer.resolve keys
+            .catch (error) -> return defer.reject error
+
+            defer.promise
+        # }}}
+
+        # All {{{
+        all: ->
+            "use strict"
+
+            defer = Q.defer()
+
+            redis.smembers "tickets"
+            .then (list) ->
+                defer.resolve list
+            .catch (error) -> return defer.reject error
+
+            defer.promise
+        # }}}
+    comment:
+        from: (tid) ->
+            "use strict"
+
+            result = []
+            defer = Q.defer()
+
+            validate = (m) ->
+                counter = (counter or 0) + 1
+                if counter is Object.keys(m).length
+                    defer.resolve result
+
+            redis.exists "ticket:#{tid}"
+            .then (exists) ->
+                if exists is 0
+                    return defer.reject new Error "Ticket does not exist"
+                redis.smembers "ticket:#{tid}:comments"
+                .then (members) ->
+                    for member in members
+                        redis.hgetall "ticket:#{tid}:comment:#{member}"
+                        .then (comment) ->
+                            result.push(comment)
+                            validate(members)
+                        .catch (error) ->
+                            console.log error
+                            return defer.reject error
+                .catch (error) ->
+                    console.log error
+                    return defer.reject error
+            .catch (error) ->
+                console.log error
+                return defer.reject error
+
+            defer.promise
+
+        create: (tid, comment) ->
+            "use strict"
+
+            defer = Q.defer()
+
+            redis.exists "ticket:#{tid}"
+            .then (exists) ->
+                if exists is 0
+                    return defer.reject new Error "Ticket does not exist"
+                comment.created = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
+                redis.smembers "ticket:#{tid}:comments"
+                .then (members) ->
+                    redis.sadd "ticket:#{tid}:comments", members.length
                     .then (result) ->
-                        defer.resolve comment
+                        comment.id = members.length
+                        redis.hmset "ticket:#{tid}:comment:#{members.length}", comment
+                        .then (result) ->
+                            defer.resolve comment
+                        .catch (error) -> return defer.reject error
                     .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
             .catch (error) -> return defer.reject error
-        .catch (error) -> return defer.reject error
 
-        defer.promise
+            defer.promise
 
-    remove: (tid, cid) ->
-        "use strict"
+        remove: (tid, cid) ->
+            "use strict"
 
-        defer = Q.defer()
+            defer = Q.defer()
 
-        redis.exists "ticket:#{tid}"
-        .then (exists) ->
-            if exists is 0
-                return defer.reject new Error "You can't delete what doesn't exist"
-            redis.del "ticket:#{tid}:comment:#{cid}"
-            .then (result) ->
-                redis.srem "ticket:#{tid}:comments", cid
+            redis.exists "ticket:#{tid}"
+            .then (exists) ->
+                if exists is 0
+                    return defer.reject new Error "You can't delete what doesn't exist"
+                redis.del "ticket:#{tid}:comment:#{cid}"
                 .then (result) ->
-                    defer.resolve 1
+                    redis.srem "ticket:#{tid}:comments", cid
+                    .then (result) ->
+                        defer.resolve 1
+                    .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
             .catch (error) -> return defer.reject error
-        .catch (error) -> return defer.reject error
 
-        defer.promise
+            defer.promise
 # }}}
 
 module.exports = db
