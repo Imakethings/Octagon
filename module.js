@@ -347,7 +347,7 @@
             }
             return Q.all(pcom).then(function(comments) {
               return defer.resolve(comments);
-            })["catch"](error)(function() {
+            })["catch"](function(error) {
               return defer.reject(error);
             });
           })["catch"](function(error) {

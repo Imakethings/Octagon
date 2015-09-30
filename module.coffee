@@ -366,9 +366,9 @@ db =
                     for member in members
                         pcom.push(redis.hgetall("ticket:#{tid}:comment:#{member}"))
                     Q.all(pcom)
-                        .then (comments) ->
-                            defer.resolve(comments)
-                        .catch(error) -> return defer.reject error
+                    .then (comments) ->
+                        defer.resolve(comments)
+                    .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
             .catch (error) -> return defer.reject error
 
