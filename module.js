@@ -338,7 +338,7 @@
           return redis.smembers("ticket:" + tid + ":comments").then(function(members) {
             var i, len, member, results;
             if (members.length === 0) {
-              return validate();
+              return defer.resolve([]);
             }
             results = [];
             for (i = 0, len = members.length; i < len; i++) {

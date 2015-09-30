@@ -360,7 +360,7 @@ db =
                 redis.smembers "ticket:#{tid}:comments"
                 .then (members) ->
                     if members.length is 0
-                        return validate()
+                        return defer.resolve([])
                     for member in members
                         redis.hgetall "ticket:#{tid}:comment:#{member}"
                         .then (comment) ->
