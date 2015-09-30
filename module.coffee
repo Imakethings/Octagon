@@ -343,6 +343,8 @@ db =
             "use strict"
 
             result = []
+            # the comments promises
+            pcom = []
             defer = Q.defer()
 
             validate = (m) ->
@@ -362,11 +364,11 @@ db =
                     if members.length is 0
                         return defer.resolve([])
                     for member in members
-                        redis.hgetall "ticket:#{tid}:comment:#{member}"
-                        .then (comment) ->
-                            result.push(comment)
-                            validate(members)
-                        .catch (error) -> return defer.reject error
+                        pcom.push(redis.hgetall("ticket:#{tid}:comment:#{member}"))
+                    Q.all(pcom)
+                        .then(comments) ->
+                            defer.resolve(comments)
+                        .catch(error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
             .catch (error) -> return defer.reject error
 
