@@ -11,27 +11,27 @@ Crypto      = require 'crypto'
 redis       = new Redis()
 
 db =
-    # Database options. {{{
-    options:
-        priorities:
-            ["High", "Normal", "Low"]
+# Database options. {{{
+options:
+    priorities:
+        ["High", "Normal", "Low"]
 
-        priority:
-            "High": "danger",
-            "Normal": "primary"
-            "Low": "default"
+    priority:
+        "High": "danger",
+        "Normal": "primary"
+        "Low": "default"
 
-        statuses:
-            ["In Progress", "Closed", "Open"]
+    statuses:
+        ["In Progress", "Closed", "Open"]
 
-        status:
-            "In Progress": "warning"
-            "Closed": "default"
-            "Open": "success"
+    status:
+        "In Progress": "warning"
+        "Closed": "default"
+        "Open": "success"
 
-        workers:
-            ["Mirko", "Terence", "Joey", "Steven"]
-    # }}}
+    workers:
+        ["Mirko", "Terence", "Joey", "Steven"]
+# }}}
 
     # Client {{{
     client:
@@ -387,6 +387,8 @@ db =
                     return defer.reject new Error "Ticket does not exist"
                 redis.smembers "ticket:#{tid}:comments"
                 .then (members) ->
+                    if members.length is 0
+                        validate()
                     for member in members
                         redis.hgetall "ticket:#{tid}:comment:#{member}"
                         .then (comment) ->
