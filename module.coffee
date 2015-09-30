@@ -376,7 +376,10 @@ db =
             validate = (m) ->
                 counter = (counter or 0) + 1
                 if counter is Object.keys(m).length
-                    defer.resolve result
+                    if result.length is 0
+                        defer.resolve []
+                    else
+                        defer.resolve result
 
             redis.exists "ticket:#{tid}"
             .then (exists) ->

@@ -324,7 +324,11 @@
           var counter;
           counter = (counter || 0) + 1;
           if (counter === Object.keys(m).length) {
-            return defer.resolve(result);
+            if (result.length === 0) {
+              return defer.resolve([]);
+            } else {
+              return defer.resolve(result);
+            }
           }
         };
         redis.exists("ticket:" + tid).then(function(exists) {
