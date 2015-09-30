@@ -11,31 +11,27 @@ Crypto      = require 'crypto'
 redis       = new Redis()
 
 db =
-# Database options. {{{
-options:
-    priorities:
-        ["High", "Normal", "Low"]
+    options:
+        priorities:
+            ["High", "Normal", "Low"]
 
-    priority:
-        "High": "danger",
-        "Normal": "primary"
-        "Low": "default"
+        priority:
+            "High": "danger",
+            "Normal": "primary"
+            "Low": "default"
 
-    statuses:
-        ["In Progress", "Closed", "Open"]
+        statuses:
+            ["In Progress", "Closed", "Open"]
 
-    status:
-        "In Progress": "warning"
-        "Closed": "default"
-        "Open": "success"
+        status:
+            "In Progress": "warning"
+            "Closed": "default"
+            "Open": "success"
 
-    workers:
-        ["Mirko", "Terence", "Joey", "Steven"]
-# }}}
+        workers:
+            ["Mirko", "Terence", "Joey", "Steven"]
 
-    # Client {{{
     client:
-        # Autenticate {{{
         authenticate: (email, password) ->
             "use strict"
 
@@ -71,9 +67,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # Update {{{
         update: (uid, attributes) ->
             "use strict"
 
@@ -107,9 +101,6 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
-
-        # Remove {{{
         remove: (uid) ->
             "use strict"
 
@@ -141,9 +132,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # Create {{{
         create: (client) ->
             "use strict"
 
@@ -196,9 +185,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # Get {{{
         get: (uid, attribute) ->
             "use strict"
 
@@ -214,9 +201,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # All {{{
         all: ->
             "use strict"
 
@@ -228,12 +213,8 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
-    # }}}
 
-# Ticket {{{
     ticket:
-       # Create {{{
         create: (ticket, uid) ->
             "use strict"
 
@@ -267,9 +248,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # Remove {{{
         remove: (tid) ->
             "use strict"
 
@@ -297,9 +276,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # Update {{{
         update: (tid, attributes) ->
             "use strict"
 
@@ -333,9 +310,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # Get {{{
         get: (tid, attribute) ->
             "use strict"
 
@@ -351,9 +326,7 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
 
-        # All {{{
         all: ->
             "use strict"
 
@@ -365,7 +338,6 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-        # }}}
     comment:
         from: (tid) ->
             "use strict"
@@ -388,21 +360,15 @@ options:
                 redis.smembers "ticket:#{tid}:comments"
                 .then (members) ->
                     if members.length is 0
-                        validate()
+                        return validate()
                     for member in members
                         redis.hgetall "ticket:#{tid}:comment:#{member}"
                         .then (comment) ->
                             result.push(comment)
                             validate(members)
-                        .catch (error) ->
-                            console.log error
-                            return defer.reject error
-                .catch (error) ->
-                    console.log error
-                    return defer.reject error
-            .catch (error) ->
-                console.log error
-                return defer.reject error
+                        .catch (error) -> return defer.reject error
+                .catch (error) -> return defer.reject error
+            .catch (error) -> return defer.reject error
 
             defer.promise
 
@@ -450,6 +416,5 @@ options:
             .catch (error) -> return defer.reject error
 
             defer.promise
-# }}}
 
 module.exports = db
