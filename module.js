@@ -96,14 +96,10 @@
           return redis.del("client:" + uid).then(function(result) {
             return redis.del("client:" + client.email).then(function(result) {
               return redis.srem("clients", uid).then(function(result) {
-                return redis.decr("client:count").then(function(result) {
-                  return defer.resolve(1);
-                });
+                return defer.resolve(1);
               })["catch"](function(error) {
                 return defer.reject(error);
               });
-            })["catch"](function(error) {
-              return defer.reject(error);
             })["catch"](function(error) {
               return defer.reject(error);
             });
@@ -238,11 +234,7 @@
           return redis.srem("client:" + ticket.cid + ":ticket", tid).then(function(result) {
             return redis.srem("tickets", tid).then(function(result) {
               return redis.del("ticket:" + tid).then(function(result) {
-                return redis.decr("ticket:count").then(function(result) {
-                  return defer.resolve(1);
-                })["catch"](function(error) {
-                  return defer.reject(error);
-                });
+                return defer.resolve(1);
               })["catch"](function(error) {
                 return defer.reject(error);
               });
