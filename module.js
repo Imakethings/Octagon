@@ -204,7 +204,7 @@
           ticket.updated = (new Date().toLocaleDateString()) + " " + (new Date().toLocaleTimeString());
           ticket.status = "Open";
           ticket.assigned = "";
-          ticket.client = uid;
+          ticket.cid = uid;
           return redis.sadd("client:" + uid + ":ticket", tid).then(function(result) {
             return redis.hmset("ticket:" + tid, ticket).then(function(result) {
               return redis.sadd("tickets", tid).then(function(result) {
@@ -235,7 +235,7 @@
           if (Object.keys(ticket).length === 0 || ticket === null) {
             return defer.reject(new Error("You can't delete what doesn't exist."));
           }
-          return redis.srem("client:" + ticket.client + ":ticket", tid).then(function(result) {
+          return redis.srem("client:" + ticket.cid + ":ticket", tid).then(function(result) {
             return redis.srem("tickets", tid).then(function(result) {
               return redis.del("ticket:" + tid).then(function(result) {
                 return redis.decr("ticket:count").then(function(result) {

@@ -231,7 +231,7 @@ db =
                 ticket.updated = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
                 ticket.status = "Open"
                 ticket.assigned = ""
-                ticket.client = uid
+                ticket.cid = uid
 
                 redis.sadd "client:#{uid}:ticket", tid
                 .then (result) ->
@@ -261,7 +261,7 @@ db =
                 if Object.keys(ticket).length is 0 or ticket is null
                     return defer.reject new Error "You can't delete what doesn't exist."
 
-                redis.srem "client:#{ticket.client}:ticket", tid
+                redis.srem "client:#{ticket.cid}:ticket", tid
                 .then (result) ->
                     redis.srem "tickets", tid
                     .then (result) ->
