@@ -122,11 +122,7 @@ db =
                         # Delete the client for the set of client entries.
                         redis.srem "clients", uid
                         .then (result) ->
-                           # Decrease the total user counter.
-                            redis.decr "client:count"
-                            .then (result) ->
-                                defer.resolve 1
-                           .catch (error) -> return defer.reject error
+                            defer.resolve 1
                         .catch (error) -> return defer.reject error
                     .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
@@ -267,10 +263,7 @@ db =
                     .then (result) ->
                         redis.del "ticket:#{tid}"
                         .then (result) ->
-                            redis.decr "ticket:count"
-                            .then (result) ->
-                                defer.resolve 1
-                            .catch (error) -> return defer.reject error
+                            defer.resolve 1
                         .catch (error) -> return defer.reject error
                     .catch (error) -> return defer.reject error
                 .catch (error) -> return defer.reject error
