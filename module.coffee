@@ -21,12 +21,13 @@ db =
             "Low": "default"
 
         statuses:
-            ["In Progress", "Closed", "Open"]
+            ["In Progress", "Closed", "Open", "Rejected"]
 
         status:
             "In Progress": "warning"
             "Closed": "default"
             "Open": "success"
+            "Rejected": "danger"
 
         workers:
             ["Mirko", "Terence", "Joey", "Steven"]
