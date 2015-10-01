@@ -259,8 +259,9 @@
       },
       update: function(tid, attributes) {
         "use strict";
-        var defer, result, validate;
+        var defer, pcom, result, validate;
         result = {};
+        pcom = [];
         defer = Q.defer();
         validate = function() {
           var counter;
@@ -270,18 +271,21 @@
           }
         };
         redis.hgetall("ticket:" + tid).then(function(ticket) {
-          var attribute, results;
+          var attribute;
           if (ticket === null) {
             return defer.reject(new Error("Ticket does not exist"));
           }
           result = ticket;
-          results = [];
+          attributes.updated = (new Date().toLocaleDateString()) + " " + (new Date().toLocaleTimeString());
           for (attribute in attributes) {
-            redis.hset("ticket:" + tid, attribute, attributes[attribute]);
+            pcom.push(redis.hset("ticket:" + tid, attribute, attributes[attribute]));
             result[attribute] = attributes[attribute];
-            results.push(validate());
           }
-          return results;
+          return Q.all(pcom).then(function(data) {
+            return defer.resolve(result);
+          })["catch"](function(error) {
+            return defer.reject(error);
+          });
         })["catch"](function(error) {
           return defer.reject(error);
         });

@@ -282,6 +282,7 @@ db =
             "use strict"
 
             result = {}
+            pcom = []
             defer = Q.defer()
 
             # The functions that 'validate's wheter we went through all the attributes.
@@ -299,14 +300,19 @@ db =
 
                 result = ticket
 
+                attributes.updated = "#{new Date().toLocaleDateString()} #{new Date().toLocaleTimeString()}"
+
                 # For every attribute in attributes.
                 for attribute of attributes
                     # Update or add to the client hash (db).
-                    redis.hset("ticket:#{tid}", attribute, attributes[attribute])
+                    pcom.push(redis.hset("ticket:#{tid}", attribute, attributes[attribute]))
                     # Update or add to the client hash (local).
                     result[attribute] = attributes[attribute]
+                Q.all(pcom)
+                .then (data) ->
+                    defer.resolve(result)
+                .catch (error) -> return defer.reject error
 
-                    validate()
 
             .catch (error) -> return defer.reject error
 
